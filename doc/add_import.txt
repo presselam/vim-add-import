@@ -64,9 +64,13 @@ does not run under Neovim, which does not implement Vim9 script.
 A normal-mode mapping is provided that runs |:AddImport| with no argument,
 i.e. it imports whatever is under the cursor: >
     nmap <Leader>ai <Plug>(add-import)
+    nmap ;i         <Plug>(add-import)
 <
-This mapping is set on <Leader>ai automatically unless you already mapped
-<Plug>(add-import) yourself, or set |g:add_import_no_mappings|.
+These two mappings (<Leader>ai and `;i`) are set automatically unless you
+already mapped <Plug>(add-import) yourself, or set
+|g:add_import_no_mappings|. Note that `;i` shadows the builtin `;` (repeat
+last f/F/t/T) followed immediately by `i`; Vim will briefly wait after `;`
+to see whether `i` follows.
 
 ==============================================================================
 4. Placement rules                                      *add-import-placement*

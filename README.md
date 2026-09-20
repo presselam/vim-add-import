@@ -36,13 +36,14 @@ With a native Vim 8 / Neovim package manager, clone into
 ```
 
 Run `:AddImport` with no argument to import whatever is under the cursor.
-A normal-mode mapping is provided for that:
+Normal-mode mappings are provided for that:
 
 ```vim
 nmap <Leader>ai <Plug>(add-import)
+nmap ;i         <Plug>(add-import)
 ```
 
-(set automatically on `<Leader>ai` unless you already mapped
+(set automatically on `<Leader>ai` and `;i` unless you already mapped
 `<Plug>(add-import)` yourself, or set `g:add_import_no_mappings = 1`).
 
 Each command finds the file's existing import block, skips exact
