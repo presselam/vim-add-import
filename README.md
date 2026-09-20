@@ -25,15 +25,18 @@ With a native Vim 8 / Neovim package manager, clone into
 :AddImport java.util.HashMap          " java:   import java.util.HashMap;
 :AddImport HashMap                    " java:   resolved via a built-in class map
 :AddImport POSIX                      " perl:   use POSIX;
-:AddImport Scalar::Util qw(blessed)   " perl:   use Scalar::Util qw(blessed);
 
-:AddImportFrom os.path join           " python: from os.path import join
-:AddImportFrom collections OrderedDict  " python: from collections import OrderedDict
-:AddImportFrom Scalar::Util blessed reftype  " perl: use Scalar::Util qw(blessed reftype);
+:AddImport os.path join               " python: from os.path import join
+:AddImport collections OrderedDict    " python: from collections import OrderedDict
+:AddImport Scalar::Util blessed reftype  " perl: use Scalar::Util qw(blessed reftype);
 
 :AddImportStatic java.util.Collections emptyList
                                        " java: import static java.util.Collections.emptyList;
 ```
+
+With one argument, `:AddImport` inserts a plain import. With two or more,
+the first argument is the module/package and the rest are specific names
+to pull from it (not supported for java; see `:AddImportStatic` instead).
 
 Run `:AddImport` with no argument to import whatever is under the cursor.
 Normal-mode mappings are provided for that:

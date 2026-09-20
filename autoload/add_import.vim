@@ -10,11 +10,31 @@ export def DefaultSpec(): string
   return matchstr(w, '^[A-Za-z_][A-Za-z0-9_.:]*')
 enddef
 
-export def Add(spec: string)
+# With one arg: plain import of that spec.
+# With two or more: the first is a module/class, the rest are specific
+# names to pull from it (python: "from X import a, b"; perl: "use X
+# qw(a b);"). With none: guess from the cursor word.
+export def Add(...args: list<string>)
   var ft = &filetype
+
+  if len(args) >= 2
+    var module = args[0]
+    var names = args[1 :]
+    if ft ==# 'python'
+      python.AddFrom(module, names)
+    elseif ft ==# 'perl'
+      perl.AddFrom(module, names)
+    else
+      echohl ErrorMsg
+      echom 'add-import: :AddImport with multiple arguments (module + names) is not supported for filetype "' .. ft .. '"'
+      echohl None
+    endif
+    return
+  endif
+
   var theSpec: string
-  if spec != ''
-    theSpec = spec
+  if len(args) == 1
+    theSpec = args[0]
   elseif ft ==# 'python'
     # Python dots are ambiguous between a package path and attribute
     # access (e.g. "json.dumps(...)"), so when guessing from the cursor
@@ -40,25 +60,6 @@ export def Add(spec: string)
   else
     echohl ErrorMsg
     echom 'add-import: unsupported filetype "' .. ft .. '" (supported: python, java, perl)'
-    echohl None
-  endif
-enddef
-
-export def AddFrom(module: string, ...names: list<string>)
-  if len(names) == 0
-    echohl ErrorMsg
-    echom 'add-import: usage :AddImportFrom {module} {name} [name2 ...]'
-    echohl None
-    return
-  endif
-  var ft = &filetype
-  if ft ==# 'python'
-    python.AddFrom(module, names)
-  elseif ft ==# 'perl'
-    perl.AddFrom(module, names)
-  else
-    echohl ErrorMsg
-    echom 'add-import: :AddImportFrom is not supported for filetype "' .. ft .. '"'
     echohl None
   endif
 enddef
