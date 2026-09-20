@@ -1,0 +1,131 @@
+*add_import.txt*  Insert import/use statements for Perl, Python and Java
+
+Author:  ufotofu@whistlinglemons.com
+License: Same terms as Vim itself
+
+==============================================================================
+CONTENTS                                                *add-import-contents*
+
+    1. Introduction ........... |add-import-intro|
+    2. Commands ................ |add-import-commands|
+    3. Mappings ................ |add-import-mappings|
+    4. Placement rules ......... |add-import-placement|
+    5. Configuration ........... |add-import-config|
+    6. Limitations ............. |add-import-limitations|
+
+==============================================================================
+1. Introduction                                            *add-import-intro*
+
+add-import inserts an import/use statement for the current 'filetype' at
+the right place in the buffer: sorted, deduplicated, and grouped the way
+each language's tooling conventionally expects. It supports Python, Java
+and Perl.
+
+This plugin is written in Vim9 script and requires Vim 9.0 or later. It
+does not run under Neovim, which does not implement Vim9 script.
+
+==============================================================================
+2. Commands                                              *add-import-commands*
+
+                                                              *:AddImport*
+:AddImport [{spec}]
+    Insert an import for {spec}, or for the WORD under the cursor if
+    {spec} is omitted.
+
+        python  {spec} is a module path       -> `import {spec}`
+        java    {spec} is a fully-qualified class name, or a short
+                name found in the class map   -> `import {spec};`
+        perl    {spec} is a package name, optionally followed by an
+                import list                   -> `use {spec};`
+
+    Examples: >
+        :AddImport os.path
+        :AddImport java.util.HashMap
+        :AddImport HashMap             " resolved via the class map
+        :AddImport POSIX
+        :AddImport Scalar::Util qw(blessed)
+<
+                                                          *:AddImportFrom*
+:AddImportFrom {module} {name} [{name2} ...]
+    python  `from {module} import {name}[, {name2} ...]`
+    perl    `use {module} qw({name} [{name2} ...]);`
+
+    Not available for java (there is no equivalent construct; see
+    |:AddImportStatic| for the closest thing).
+
+                                                        *:AddImportStatic*
+:AddImportStatic {class} {member}
+    java only: `import static {class}.{member};`
+
+==============================================================================
+3. Mappings                                              *add-import-mappings*
+
+                                                        *<Plug>(add-import)*
+A normal-mode mapping is provided that runs |:AddImport| with no argument,
+i.e. it imports whatever is under the cursor: >
+    nmap <Leader>ai <Plug>(add-import)
+<
+This mapping is set on <Leader>ai automatically unless you already mapped
+<Plug>(add-import) yourself, or set |g:add_import_no_mappings|.
+
+==============================================================================
+4. Placement rules                                      *add-import-placement*
+
+Each filetype's existing import/use block is located, and the new line is
+inserted into it in sorted order; if no such block exists yet, one is
+created in the conventional place. Exact duplicates are never inserted
+twice.
+
+python~
+    The block is found after any shebang line, encoding cookie and
+    module docstring. `import X` statements are kept as a group before
+    `from X import Y` statements (matching common isort defaults), each
+    group sorted case-insensitively.
+
+java~
+    The block is found after the `package` statement, if any.
+    `import static ...;` statements are kept as a group before regular
+    `import ...;` statements (matching the Google Java Style Guide),
+    each group sorted case-insensitively.
+
+perl~
+    The block is found after the `package` statement, if any. Pragmas
+    (`strict`, `warnings`, `feature`, `utf8`, `lib`, `vars`, `constant`,
+    `base`, `parent`, `integer`, `bytes`, `diagnostics`, version
+    pragmas like `v5.10`) are kept as a group before other `use Module;`
+    statements, each group sorted case-insensitively.
+
+==============================================================================
+5. Configuration                                            *add-import-config*
+
+                                                  *g:add_import_no_mappings*
+Set to disable the default <Leader>ai mapping: >
+    let g:add_import_no_mappings = 1
+<
+                                              *g:add_import_java_classmap*
+A Dict mapping short Java class names to fully-qualified names, merged
+over (and taking priority over) the small built-in map of common JDK
+classes. Used to resolve `:AddImport HashMap`-style short names: >
+    let g:add_import_java_classmap = {
+          \ 'MyType': 'com.example.util.MyType',
+          \ }
+<
+==============================================================================
+6. Limitations                                        *add-import-limitations*
+
+- Only a single, flat, contiguous import block is tracked per file.
+  A comment line inside what looks like the import block ends the block
+  there; content past it is not considered when sorting or deduplicating.
+- Pre-existing multi-line Python imports, e.g. `from x import (a, b)`,
+  are not parsed or merged into; a new `from x import c` is added as its
+  own line instead.
+- Java import resolution for short class names is limited to a small
+  built-in list plus whatever you add to |g:add_import_java_classmap|;
+  it does not consult your classpath or index any jars.
+- The cursor-word default splits Python specs at the first `.`, since a
+  dot there is ambiguous between a package path and attribute access
+  (e.g. cursor on `json.dumps(...)` yields `import json`, not
+  `import json.dumps`). Pass an explicit argument to get a deeper
+  import path, e.g. `:AddImport os.path`.
+
+ vim:tw=78:ts=8:ft=help:norl:
