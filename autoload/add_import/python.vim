@@ -2,8 +2,9 @@ vim9script
 # add_import/python.vim - insert "import X" / "from X import Y" statements
 #
 # Known simplification: only a single, flat, contiguous import block is
-# tracked (comments inside the block end it, and pre-existing multi-line
-# "from x import (a, b)" statements are not merged into). This covers the
+# tracked (comments inside the block end it). Pre-existing multi-line
+# "from x import (\n    a,\n    b,\n)" statements (import list spread
+# across several lines) are not parsed or merged into. This covers the
 # common case; anything fancier is left to a dedicated isort-style tool.
 
 import autoload 'add_import.vim'
@@ -83,6 +84,52 @@ def FindBlock(start: number): list<number>
   return [first, lastImport]
 enddef
 
+# Finds an existing single-line "from {module} import ...;" line for the
+# exact module, whatever it currently imports.
+def FindModuleLine(module: string): number
+  var esc = escape(module, '\/.*$^~[]')
+  return search('^\s*from\s\+' .. esc .. '\s\+import\s\+\S.*$', 'nw')
+enddef
+
+# Adds names to an existing from-import's name list instead of adding a
+# second line for the same module. Handles a single-line parenthesized
+# list, e.g. "from x import (a, b)", preserving the parens; a list split
+# across multiple lines is left alone (see the module-level comment).
+def MergeNames(lnum: number, module: string, names: list<string>)
+  var importsPart = matchstr(getline(lnum), '^\s*from\s\+\S\+\s\+import\s\+\zs.*$')
+  var hasParens = importsPart =~# '^(.*)$'
+  var inner = hasParens ? substitute(importsPart, '^(\(.*\))$', '\1', '') : importsPart
+
+  var existing: list<string> = []
+  for part in split(inner, ',')
+    var trimmed = trim(part)
+    if trimmed != ''
+      add(existing, trimmed)
+    endif
+  endfor
+
+  var merged = copy(existing)
+  var addedAny = false
+  for n in names
+    if index(merged, n) < 0
+      add(merged, n)
+      addedAny = true
+    endif
+  endfor
+
+  if !addedAny
+    add_import.AlreadyPresent('from ' .. module .. ' import ' .. join(names, ', '))
+    return
+  endif
+
+  var newImports = join(merged, ', ')
+  if hasParens
+    newImports = '(' .. newImports .. ')'
+  endif
+  setline(lnum, 'from ' .. module .. ' import ' .. newImports)
+  echom 'add-import: updated "' .. module .. '" import list'
+enddef
+
 # "import X" statements are kept as a group before "from X import Y"
 # statements, matching common isort defaults.
 def Insert(text: string, isFrom: bool)
@@ -137,5 +184,10 @@ export def Add(module: string)
 enddef
 
 export def AddFrom(module: string, names: list<string>)
+  var lnum = FindModuleLine(module)
+  if lnum != 0
+    MergeNames(lnum, module, names)
+    return
+  endif
   Insert('from ' .. module .. ' import ' .. join(names, ', '), true)
 enddef
