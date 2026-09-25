@@ -30,5 +30,5 @@ nnoremap <silent> <Plug>(add-import) <ScriptCmd>add_import.Add()<CR>
 
 if !hasmapto('<Plug>(add-import)') && !get(g:, 'add_import_no_mappings', false)
   nmap <unique> <Leader>ai <Plug>(add-import)
-  nmap <unique> ;i <Plug>(add-import)
+  nmap <unique> ;i :AddImport<SPACE>
 endif
